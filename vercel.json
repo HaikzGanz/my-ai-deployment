@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api-ai/(.*)",
+      "destination": "https://api.apifree.ai/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
