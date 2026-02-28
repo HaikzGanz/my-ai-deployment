@@ -12,6 +12,9 @@ interface SettingsModalProps {
 export function SettingsModal({ settings, onSave, onClose }: SettingsModalProps) {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   const [showKey, setShowKey] = useState(false);
+  
+  // [🔥] STATE BARU BUAT FITUR CUSTOM MODEL
+  const [isCustomModel, setIsCustomModel] = useState(false);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -79,20 +82,41 @@ export function SettingsModal({ settings, onSave, onClose }: SettingsModalProps)
 
           {/* Model */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-200">
-              Model
-            </label>
-            <select
-              value={localSettings.model}
-              onChange={e => setLocalSettings(s => ({ ...s, model: e.target.value }))}
-              className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all text-sm appearance-none cursor-pointer"
-            >
-              {MODELS.map(m => (
-                <option key={m.id} value={m.id} className="bg-[#2d2d2d]">
-                  {m.name} ({m.provider})
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-200">
+                Model
+              </label>
+              {/* [🔥] TOMBOL SWITCHER CUSTOM MODEL */}
+              <button
+                onClick={() => setIsCustomModel(!isCustomModel)}
+                className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+              >
+                {isCustomModel ? 'Select from list' : 'Customize Model'}
+              </button>
+            </div>
+            
+            {/* [🔥] LOGIKA IF-ELSE BUAT NAMPILIN INPUT ATAU SELECT */}
+            {isCustomModel ? (
+              <input
+                type="text"
+                value={localSettings.model}
+                onChange={e => setLocalSettings(s => ({ ...s, model: e.target.value }))}
+                placeholder="please input your ai model, ex: openai/gpt-5.2"
+                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all text-sm font-mono"
+              />
+            ) : (
+              <select
+                value={localSettings.model}
+                onChange={e => setLocalSettings(s => ({ ...s, model: e.target.value }))}
+                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all text-sm appearance-none cursor-pointer"
+              >
+                {MODELS.map(m => (
+                  <option key={m.id} value={m.id} className="bg-[#2d2d2d]">
+                    {m.name} ({m.provider})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* System Prompt */}

@@ -134,7 +134,8 @@ export function App() {
     }
   }, [settings.apiKey]);
 
-  const handleSendMessage = useCallback(async (content: string) => {
+  // [🔥] SIGNATURE DIUBAH BIAR NERIMA imageUrl DARI ChatArea
+  const handleSendMessage = useCallback(async (content: string, imageUrl?: string | null) => {
     if (isStreaming) return;
 
     let currentChat = activeChat;
@@ -152,6 +153,7 @@ export function App() {
       role: 'user',
       content,
       timestamp: Date.now(),
+      ...(imageUrl && { imageUrl }), // [🔥] GAMBAR DISIMPEN KE MESSAGE STATE
     };
 
     const updatedMessages = [...currentChat.messages, userMessage];

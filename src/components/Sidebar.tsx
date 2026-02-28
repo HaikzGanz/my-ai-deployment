@@ -91,13 +91,15 @@ export function Sidebar({
         />
       )}
 
+      {/* [🔥] KUNCI FIX BUG-NYA ADA DI DUA ELEMEN INI BRE! */}
       <aside
         className={cn(
-          'fixed md:relative z-40 flex flex-col h-full bg-[#171717] transition-all duration-300 ease-in-out',
+          'fixed md:relative z-40 flex flex-col h-full bg-[#171717] transition-all duration-300 ease-in-out overflow-hidden', // Ditambahin overflow-hidden disini
           isOpen ? 'w-[260px] translate-x-0' : 'w-0 -translate-x-full md:translate-x-0 md:w-0'
         )}
       >
-        <div className={cn('flex flex-col h-full overflow-hidden', isOpen ? 'opacity-100' : 'opacity-0')}>
+        {/* Class opacity dihapus total. Lebar dikunci di w-[260px] biar dalemnya gak gepeng! */}
+        <div className="flex flex-col h-full w-[260px]">
           {/* Header */}
           <div className="flex items-center justify-between p-2 pt-3">
             <button

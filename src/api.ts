@@ -3,7 +3,7 @@ import { Message } from './types';
 export async function streamChat(
   apiKey: string,
   model: string,
-  messages: { role: string; content: string }[],
+  messages: any[], 
   onChunk: (text: string) => void,
   onDone: () => void,
   onError: (error: string) => void,
@@ -14,8 +14,114 @@ export async function streamChat(
     return;
   }
 
+  // Efek Ngetik
+  const typeText = async (text: string, speed = 20) => {
+    for (const char of text) {
+      if (signal?.aborted) throw new Error('Dibatalkan oleh Komandan.');
+      onChunk(char);
+      await new Promise(resolve => setTimeout(resolve, speed));
+    }
+  };
+
   try {
-    // URL UDAH DIGANTI JADI PROXY VITE
+    // [🔥] SATPAM JALUR GAMBAR (UDAH DI-UPGRADE!)
+    const lastMessage = messages[messages.length - 1];
+    let userText = "";
+    
+    // [🔥] PERBAIKAN BUG: Ekstraksi teks yang lebih barbar dan akurat!
+    if (typeof lastMessage.content === 'string') {
+      userText = lastMessage.content;
+    } else if (Array.isArray(lastMessage.content)) {
+      // Kita cari item di dalam array yang tipenya 'text'
+      const textPart = lastMessage.content.find((c: any) => c.type === 'text');
+      if (textPart && textPart.text) {
+        userText = textPart.text;
+      }
+    }
+
+    // Pastikan userText gak undefined sebelum di cek
+    if (userText && userText.trim().toLowerCase().startsWith('/imagine ')) {
+      // Potong tulisan '/imagine ' nya, ambil murni permintaannya
+      const imagePrompt = userText.substring(9).trim(); 
+      
+      // [🔥] SAFETY CHECK: Kalau abis ngetik /imagine tapi gak ada isinya
+      if (!imagePrompt) {
+          throw new Error("Komandan lupa masukin prompt gambarnya! Ketik /imagine [spasi] [gambar yang dimau]");
+      }
+
+      await typeText('🎨 *Membangun mantra visual... Sabar ya Komandan...*\n\n');
+
+      // 1. SUBMIT REQUEST 
+      const submitRes = await fetch('/api-ai/v1/image/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': window.location.origin,
+        },
+        body: JSON.stringify({
+          model: model, 
+          prompt: imagePrompt, // SEKARANG PROMPT-NYA DIJAMIN NGGAK KOSONG
+          aspect_ratio: "1:1",
+          resolution: "1K"
+        }),
+        signal,
+      });
+
+      if (!submitRes.ok) {
+        const errText = await submitRes.text();
+        throw new Error(`Gagal ngirim request: ${errText}`);
+      }
+      
+      const submitData = await submitRes.json();
+      if (submitData.code !== 200) {
+        throw new Error(submitData.error || submitData.code_msg || 'Gagal generate gambar.');
+      }
+
+      const requestId = submitData.resp_data.request_id;
+      
+      await typeText(`⏳ *Tiket antrean didapat (ID: ${requestId}). Sedang merender di dapur Nano Banana...*\n\n`);
+
+      // 2. POLLING 
+      while (true) {
+        if (signal?.aborted) {
+          throw new Error('Dibatalkan oleh Komandan.');
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        const pollRes = await fetch(`/api-ai/v1/image/${requestId}/result`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          signal,
+        });
+
+        if (!pollRes.ok) throw new Error('Gagal ngecek status gambar.');
+        
+        const pollData = await pollRes.json();
+        if (pollData.code !== 200) throw new Error(pollData.error || pollData.code_msg);
+
+        const status = pollData.resp_data.status;
+        
+        if (status === 'success') {
+          await typeText(`✅ **Selesai!**\n\n`);
+          const imgUrl = pollData.resp_data.image_list[0];
+          onChunk(`![Hasil Generate](${imgUrl})\n`);
+          onDone();
+          return; 
+        } else if (status === 'failed' || status === 'error') {
+          throw new Error(pollData.resp_data.error || 'Server gagal bikin gambarnya, Bre.');
+        }
+      }
+    }
+
+
+    // ======================================================================
+    // [🔥] JALUR TEKS BIASA 
+    // ======================================================================
+
     const response = await fetch('/api-ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -73,7 +179,6 @@ export async function streamChat(
             onChunk(content);
           }
         } catch {
-          // skip malformed JSON
         }
       }
     }
@@ -90,14 +195,24 @@ export async function streamChat(
 export function buildMessages(
   systemPrompt: string,
   chatMessages: Message[]
-): { role: string; content: string }[] {
-  const msgs: { role: string; content: string }[] = [];
+): any[] { 
+  const msgs: any[] = [];
   if (systemPrompt) {
     msgs.push({ role: 'system', content: systemPrompt });
   }
   for (const m of chatMessages) {
     if (m.role === 'user' || m.role === 'assistant') {
-      msgs.push({ role: m.role, content: m.content });
+      if (m.imageUrl) {
+        msgs.push({
+          role: m.role,
+          content: [
+            { type: 'text', text: m.content },
+            { type: 'image_url', image_url: { url: m.imageUrl } }
+          ]
+        });
+      } else {
+        msgs.push({ role: m.role, content: m.content });
+      }
     }
   }
   return msgs;

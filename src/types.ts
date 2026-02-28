@@ -3,6 +3,7 @@ export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
+  imageUrl?: string; // [🔥] INI SELANG INFUS GAMBARNYA
 }
 
 export interface Chat {

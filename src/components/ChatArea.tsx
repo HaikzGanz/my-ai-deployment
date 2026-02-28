@@ -3,7 +3,8 @@ import TextareaAutosize from 'react-textarea-autosize';
 import { Message, AppSettings, Chat } from '../types';
 import { MODELS } from '../constants';
 import { cn } from '../utils/cn';
-import { ArrowUpIcon, StopIcon, GPTIcon, SidebarIcon, EditIcon, CopyIcon, CheckIcon } from './Icons';
+// [🔥] TAMBAHIN ImageIcon dan CloseIcon
+import { ArrowUpIcon, StopIcon, GPTIcon, SidebarIcon, EditIcon, CopyIcon, CheckIcon, ImageIcon, CloseIcon } from './Icons';
 import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface ChatAreaProps {
@@ -11,7 +12,8 @@ interface ChatAreaProps {
   isStreaming: boolean;
   streamingContent: string;
   settings: AppSettings;
-  onSendMessage: (content: string) => void;
+  // [🔥] UBAH SIGNATURE: Sekarang bisa ngirim gambar
+  onSendMessage: (content: string, imageUrl?: string | null) => void;
   onStopStreaming: () => void;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
@@ -37,7 +39,8 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function MessageItem({ message, isStreaming }: { message: Message & { isStreamingMsg?: boolean }; isStreaming?: boolean }) {
+// [🔥] TAMBAHIN DUKUNGAN NAMPILIN GAMBAR DI CHAT BUBBLE
+function MessageItem({ message, isStreaming }: { message: Message & { isStreamingMsg?: boolean; imageUrl?: string }; isStreaming?: boolean }) {
   const isUser = message.role === 'user';
 
   return (
@@ -63,6 +66,14 @@ function MessageItem({ message, isStreaming }: { message: Message & { isStreamin
               {isUser ? 'You' : 'ChatGPT'}
             </div>
             <div className={cn('text-[15px] text-gray-200 leading-7 prose-invert max-w-none')}>
+              
+              {/* [🔥] NAMPILIN GAMBAR KALAU USER NGIRIM GAMBAR */}
+              {message.imageUrl && (
+                <div className="mb-3">
+                  <img src={message.imageUrl} alt="Uploaded" className="max-w-sm rounded-lg border border-white/10 shadow-md" />
+                </div>
+              )}
+
               {isUser ? (
                 <p className="whitespace-pre-wrap">{message.content}</p>
               ) : (
@@ -134,10 +145,29 @@ export function ChatArea({
   onChangeModel,
 }: ChatAreaProps) {
   const [input, setInput] = useState('');
+  
+  // [🔥] STATE BARU BUAT GAMBAR
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+
+  // [🔥] FUNGSI BACA GAMBAR JADI BASE64
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    // Reset file input biar bisa milih gambar yang sama lagi
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -170,9 +200,12 @@ export function ChatArea({
 
   const handleSend = () => {
     const trimmed = input.trim();
-    if (!trimmed || isStreaming) return;
+    // [🔥] SEKARANG BISA NGIRIM KALAU ADA TEKS ATAU ADA GAMBAR
+    if ((!trimmed && !selectedImage) || isStreaming) return;
     setInput('');
-    onSendMessage(trimmed);
+    // Ngirim teks sekalian gambar (kalau ada)
+    onSendMessage(trimmed, selectedImage);
+    setSelectedImage(null); // Bersihin gambar abis dikirim
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -224,7 +257,7 @@ export function ChatArea({
             onChangeModel={onChangeModel}
           />
         ) : (
-          <div className="pb-32">
+          <div className="pb-40">
             {chat.messages.map(msg => (
               <MessageItem key={msg.id} message={msg} />
             ))}
@@ -248,7 +281,7 @@ export function ChatArea({
       {!isAtBottom && hasMessages && (
         <button
           onClick={scrollToBottom}
-          className="absolute bottom-36 left-1/2 -translate-x-1/2 p-2 bg-[#2d2d2d] border border-white/10 rounded-full shadow-lg hover:bg-[#3d3d3d] transition-colors text-gray-400"
+          className="absolute bottom-40 left-1/2 -translate-x-1/2 p-2 bg-[#2d2d2d] border border-white/10 rounded-full shadow-lg hover:bg-[#3d3d3d] transition-colors text-gray-400"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" />
@@ -259,7 +292,38 @@ export function ChatArea({
       {/* Input area */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#212121] via-[#212121] to-transparent pt-6 pb-4 px-4">
         <div className="max-w-3xl mx-auto">
-          <div className="relative bg-[#2f2f2f] rounded-2xl border border-white/10 shadow-xl">
+          
+          {/* [🔥] KOTAK PREVIEW GAMBAR KALAU UDAH DIPILIH */}
+          {selectedImage && (
+            <div className="relative inline-block mb-3 bg-[#2f2f2f] border border-white/10 p-2 rounded-xl shadow-lg">
+              <button 
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-2 -right-2 bg-gray-700 hover:bg-red-500 text-white p-1 rounded-full transition-colors"
+              >
+                <CloseIcon className="w-3 h-3" />
+              </button>
+              <img src={selectedImage} alt="Preview" className="h-20 w-auto rounded-md object-cover" />
+            </div>
+          )}
+
+          <div className="relative bg-[#2f2f2f] rounded-2xl border border-white/10 shadow-xl flex items-end">
+            
+            {/* [🔥] TOMBOL UPLOAD GAMBAR */}
+            <input 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleImageChange} 
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-3 text-gray-400 hover:text-white transition-colors mb-0.5"
+              title="Upload Image"
+            >
+              <ImageIcon className="w-5 h-5" />
+            </button>
+
             <TextareaAutosize
               ref={inputRef}
               value={input}
@@ -267,9 +331,10 @@ export function ChatArea({
               onKeyDown={handleKeyDown}
               placeholder="Message ChatGPT..."
               maxRows={8}
-              className="w-full resize-none bg-transparent text-white placeholder-gray-500 px-4 py-3.5 pr-14 focus:outline-none text-[15px] leading-6 scrollbar-thin"
+              className="flex-1 resize-none bg-transparent text-white placeholder-gray-500 py-3.5 pr-14 focus:outline-none text-[15px] leading-6 scrollbar-thin"
               disabled={isStreaming}
             />
+            
             <div className="absolute right-2 bottom-2">
               {isStreaming ? (
                 <button
@@ -282,10 +347,10 @@ export function ChatArea({
               ) : (
                 <button
                   onClick={handleSend}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() && !selectedImage}
                   className={cn(
                     'p-2 rounded-lg transition-all',
-                    input.trim()
+                    (input.trim() || selectedImage)
                       ? 'bg-white text-black hover:bg-gray-200'
                       : 'bg-white/10 text-gray-500 cursor-not-allowed'
                   )}
@@ -297,7 +362,7 @@ export function ChatArea({
             </div>
           </div>
           <p className="text-center text-xs text-gray-500 mt-2.5">
-            ChatGPT Bisa Saja Membuat Kesalahan, Mohon Periksa Kembali Jawabannya.
+            ©Copyright By @Haikzone1
           </p>
         </div>
       </div>
