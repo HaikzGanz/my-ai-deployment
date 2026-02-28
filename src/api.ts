@@ -14,7 +14,6 @@ export async function streamChat(
     return;
   }
 
-  // Efek Ngetik
   const typeText = async (text: string, speed = 20) => {
     for (const char of text) {
       if (signal?.aborted) throw new Error('Dibatalkan oleh Komandan.');
@@ -24,34 +23,30 @@ export async function streamChat(
   };
 
   try {
-    // [🔥] SATPAM JALUR GAMBAR (UDAH DI-UPGRADE!)
     const lastMessage = messages[messages.length - 1];
     let userText = "";
     
-    // [🔥] PERBAIKAN BUG: Ekstraksi teks yang lebih barbar dan akurat!
     if (typeof lastMessage.content === 'string') {
       userText = lastMessage.content;
     } else if (Array.isArray(lastMessage.content)) {
-      // Kita cari item di dalam array yang tipenya 'text'
       const textPart = lastMessage.content.find((c: any) => c.type === 'text');
       if (textPart && textPart.text) {
         userText = textPart.text;
       }
     }
 
-    // Pastikan userText gak undefined sebelum di cek
+    // [🔥] JALUR GAMBAR AUTO NANO BANANA PRO
     if (userText && userText.trim().toLowerCase().startsWith('/imagine ')) {
-      // Potong tulisan '/imagine ' nya, ambil murni permintaannya
       const imagePrompt = userText.substring(9).trim(); 
       
-      // [🔥] SAFETY CHECK: Kalau abis ngetik /imagine tapi gak ada isinya
       if (!imagePrompt) {
           throw new Error("Komandan lupa masukin prompt gambarnya! Ketik /imagine [spasi] [gambar yang dimau]");
       }
 
+      const forceModel = "google/nano-banana-pro"; // [🔥] OTOMATIS GANTI MODEL!
+
       await typeText('🎨 *Membangun mantra visual... Sabar ya Komandan...*\n\n');
 
-      // 1. SUBMIT REQUEST 
       const submitRes = await fetch('/api-ai/v1/image/submit', {
         method: 'POST',
         headers: {
@@ -60,8 +55,8 @@ export async function streamChat(
           'HTTP-Referer': window.location.origin,
         },
         body: JSON.stringify({
-          model: model, 
-          prompt: imagePrompt, // SEKARANG PROMPT-NYA DIJAMIN NGGAK KOSONG
+          model: forceModel, // Pake model yang udah di-force
+          prompt: imagePrompt, 
           aspect_ratio: "1:1",
           resolution: "1K"
         }),
@@ -82,7 +77,6 @@ export async function streamChat(
       
       await typeText(`⏳ *Tiket antrean didapat (ID: ${requestId}). Sedang merender di dapur Nano Banana...*\n\n`);
 
-      // 2. POLLING 
       while (true) {
         if (signal?.aborted) {
           throw new Error('Dibatalkan oleh Komandan.');
@@ -107,7 +101,11 @@ export async function streamChat(
         
         if (status === 'success') {
           await typeText(`✅ **Selesai!**\n\n`);
-          const imgUrl = pollData.resp_data.image_list[0];
+          let imgUrl = pollData.resp_data.image_list[0];
+          
+          // [🔥] FIX BUG VERCEL MIXED CONTENT (HTTP to HTTPS)
+          imgUrl = imgUrl.replace('http://', 'https://');
+          
           onChunk(`![Hasil Generate](${imgUrl})\n`);
           onDone();
           return; 
@@ -117,11 +115,7 @@ export async function streamChat(
       }
     }
 
-
-    // ======================================================================
     // [🔥] JALUR TEKS BIASA 
-    // ======================================================================
-
     const response = await fetch('/api-ai/v1/chat/completions', {
       method: 'POST',
       headers: {
