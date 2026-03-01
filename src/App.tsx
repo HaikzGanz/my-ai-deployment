@@ -12,9 +12,9 @@ import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { SettingsModal } from './components/SettingsModal';
 
-// [🔥] IMPORT FIREBASE DIUBAH: Tambahin signInWithRedirect & getRedirectResult
+// [🔥] KITA KEMBALI PAKE JALUR CEPAT: signInWithPopup
 import { auth, googleProvider } from './firebase'; 
-import { signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -33,15 +33,7 @@ export function App() {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    // [🔥] JURUS REDIRECT: Cek apakah user baru aja dilempar balik dari halaman Google
-    getRedirectResult(auth).then((result) => {
-      if (result) {
-        console.log("Sukses Login", result.user);
-      }
-    }).catch((error) => {
-      console.error("Gagal Login", error);
-    });
-
+    // Cuma mantau perubahan status login
     const unsubscribe = onAuthStateChanged(auth, (currentUser: User | null) => {
       setUser(currentUser);
       setIsAuthLoading(false);
@@ -51,10 +43,10 @@ export function App() {
 
   const handleLogin = async () => {
     try {
-      // [🔥] SEKARANG PAKE REDIRECT BUKAN POP-UP BIAR BROWSER HP GAK NGAMBEK!
-      await signInWithRedirect(auth, googleProvider);
+      // [🔥] BALIK PAKE POP-UP BIAR KILAT! (Pastikan Support Email di Firebase udah diisi)
+      await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      console.error("Gagal memanggil fungsi login:", error);
+      console.error("Gagal login Pop-up:", error);
     }
   };
 
@@ -357,7 +349,7 @@ export function App() {
                       type="url"
                       value={customApiUrl}
                       onChange={handleCustomUrlChange}
-                      placeholder="Contoh: https://api.openai.com/v1/chat/completions"
+                      placeholder="e.g. https://api.openai.com/v1/chat/completions"
                       className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-gray-500 transition-colors"
                     />
                   </div>
@@ -375,7 +367,7 @@ export function App() {
       <button 
         onClick={handleLogout} 
         className="absolute top-3 right-3 z-50 bg-red-900/30 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-800/50 hover:text-red-300 text-xs font-bold border border-red-500/30 transition-all tracking-wider"
-        title="Logout"
+        title="Logout dari Markas"
       >
         LOGOUT
       </button>
