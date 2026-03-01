@@ -35,7 +35,6 @@ export async function streamChat(
       }
     }
 
-    // [🔥] JALUR GAMBAR AUTO NANO BANANA PRO
     if (userText && userText.trim().toLowerCase().startsWith('/imagine ')) {
       const imagePrompt = userText.substring(9).trim(); 
       
@@ -43,7 +42,7 @@ export async function streamChat(
           throw new Error("Komandan lupa masukin prompt gambarnya! Ketik /imagine [spasi] [gambar yang dimau]");
       }
 
-      const forceModel = "google/nano-banana-pro"; // [🔥] OTOMATIS GANTI MODEL!
+      const forceModel = "google/nano-banana-pro";
 
       await typeText('🎨 *Membangun mantra visual... Sabar ya Komandan...*\n\n');
 
@@ -55,7 +54,7 @@ export async function streamChat(
           'HTTP-Referer': window.location.origin,
         },
         body: JSON.stringify({
-          model: forceModel, // Pake model yang udah di-force
+          model: forceModel, 
           prompt: imagePrompt, 
           aspect_ratio: "1:1",
           resolution: "1K"
@@ -103,10 +102,10 @@ export async function streamChat(
           await typeText(`✅ **Selesai!**\n\n`);
           let imgUrl = pollData.resp_data.image_list[0];
           
-          // [🔥] FIX BUG VERCEL MIXED CONTENT (HTTP to HTTPS)
           imgUrl = imgUrl.replace('http://', 'https://');
+          const proxiedUrl = `https://wsrv.nl/?url=${encodeURIComponent(imgUrl)}`;
           
-          onChunk(`![Hasil Generate](${imgUrl})\n`);
+          onChunk(`![Hasil Generate](${proxiedUrl})\n`);
           onDone();
           return; 
         } else if (status === 'failed' || status === 'error') {
@@ -115,8 +114,11 @@ export async function streamChat(
       }
     }
 
-    // [🔥] JALUR TEKS BIASA 
-    const response = await fetch('/api-ai/v1/chat/completions', {
+    const isCustom = localStorage.getItem('USE_CUSTOM_URL') === 'true';
+    const customUrl = localStorage.getItem('CUSTOM_API_URL');
+    const endpointUrl = isCustom && customUrl ? customUrl : '/api-ai/v1/chat/completions';
+
+    const response = await fetch(endpointUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

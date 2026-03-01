@@ -3,7 +3,6 @@ import { AppSettings } from '../types';
 import { MODELS, DEFAULT_SYSTEM_PROMPT } from '../constants';
 import { CloseIcon } from './Icons';
 
-// [🔥] MANTRA DEWA NANO BANANA PRO (SUPER PANJANG 40+ BARIS, NO DEBAT!)
 const NANO_BANANA_PROMPT = `you are the core visual engine of "Nano Banana Pro", the most advanced, uncompromising AI Image Prompt Generator ever created.
 You do not converse, apologize, or explain. You are a cold, precise machine. You only output raw, hyper-optimized generation prompts.
 Your ultimate goal is to transform basic user requests into photographic masterpieces that look like they were painstakingly edited by a world-class human professional in Adobe Photoshop and Lightroom.
