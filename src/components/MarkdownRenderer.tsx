@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+// [🔥] TAMBAHAN KAMUS MATEMATIKA
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
+// ===================================
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { CopyIcon, CheckIcon } from './Icons';
@@ -56,7 +61,8 @@ function CodeBlock({ language, children }: { language: string; children: string 
 export function MarkdownRenderer({ content }: { content: string }) {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
+      remarkPlugins={[remarkGfm, remarkMath]} // [🔥] REMARK MATH MASUK SINI
+      rehypePlugins={[rehypeKatex]}           // [🔥] REHYPE KATEX MASUK SINI
       components={{
         code({ className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || '');

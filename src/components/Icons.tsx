@@ -153,3 +153,20 @@ export function ImageIcon({ className = 'w-5 h-5' }: { className?: string }) {
     </svg>
   );
 }
+
+// [🔥] LOGO EKSKLUSIF HAIKZ (H + BINTANG A)
+export function HaikzLogo({ className = 'w-8 h-8' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" rx="20" fill="url(#paint0_linear)" />
+      <path d="M25 25V75M75 25V75M25 50H75" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M50 30L55.5 45H71.5L58.5 54.5L63.5 70L50 60.5L36.5 70L41.5 54.5L28.5 45H44.5L50 30Z" fill="#19c37d" opacity="0.9"/>
+      <defs>
+        <linearGradient id="paint0_linear" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#2b2b2b" />
+          <stop offset="1" stopColor="#171717" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
