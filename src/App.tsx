@@ -12,9 +12,10 @@ import { Sidebar } from './components/Sidebar';
 import { ChatArea } from './components/ChatArea';
 import { SettingsModal } from './components/SettingsModal';
 
-// [🔥] KITA KEMBALI PAKE JALUR CEPAT: signInWithPopup
-import { auth, googleProvider } from './firebase'; 
+// [🔥] IMPORT FIREBASE & FIRESTORE CLOUD SYNC
+import { auth, googleProvider, db } from './firebase'; 
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -32,8 +33,8 @@ export function App() {
 
   const abortRef = useRef<AbortController | null>(null);
 
+  // [🔥] FIREBASE AUTHENTICATION
   useEffect(() => {
-    // Cuma mantau perubahan status login
     const unsubscribe = onAuthStateChanged(auth, (currentUser: User | null) => {
       setUser(currentUser);
       setIsAuthLoading(false);
@@ -41,9 +42,49 @@ export function App() {
     return () => unsubscribe();
   }, []);
 
+  // [🔥] CLOUD SYNC: MENGAMBIL CHAT DARI SERVER SAAT LOGIN
+  useEffect(() => {
+    if (user) {
+      const fetchCloudChats = async () => {
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const cloudChats = docSnap.data().chats;
+            if (cloudChats && cloudChats.length > 0) {
+              setChats(cloudChats); // Timpa lokal dengan data Cloud
+            }
+          }
+        } catch (error) {
+          console.error("Gagal narik chat dari Cloud:", error);
+        }
+      };
+      fetchCloudChats();
+    }
+  }, [user]);
+
+  // [🔥] CLOUD SYNC: MENYIMPAN CHAT KE SERVER OTOMATIS TINGKAT DEWA
+  useEffect(() => {
+    saveChats(chats); // Simpan lokal
+    if (user && chats.length > 0) {
+      const saveToCloud = async () => {
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          await setDoc(docRef, { chats }, { merge: true });
+        } catch (error) {
+          console.error("Gagal nyimpen chat ke Cloud:", error);
+        }
+      };
+      
+      // Delay dikit biar gak nge-spam database Google pas ngetik stream
+      const timeoutId = setTimeout(() => { saveToCloud(); }, 1500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [chats, user]);
+
+
   const handleLogin = async () => {
     try {
-      // [🔥] BALIK PAKE POP-UP BIAR KILAT! (Pastikan Support Email di Firebase udah diisi)
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Gagal login Pop-up:", error);
@@ -53,6 +94,7 @@ export function App() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      setChats([]); // Bersihin chat kalau logout biar gak dibaca orang
     } catch (error) {
       console.error("Gagal logout:", error);
     }
@@ -68,7 +110,6 @@ export function App() {
     localStorage.setItem('CUSTOM_API_URL', e.target.value);
   };
 
-  useEffect(() => { saveChats(chats); }, [chats]);
   useEffect(() => { saveActiveChatId(activeChatId); }, [activeChatId]);
   useEffect(() => { saveSettings(settings); }, [settings]);
   useEffect(() => { saveSidebarOpen(sidebarOpen); }, [sidebarOpen]);
@@ -372,6 +413,7 @@ export function App() {
         LOGOUT
       </button>
 
+      {/* [🔥] USER DIKIRIM KE SIDEBAR BIAR PROFILNYA MUNCUL DI POJOK KIRI BAWAH */}
       <Sidebar
         chats={chats}
         activeChatId={activeChatId}
@@ -382,6 +424,7 @@ export function App() {
         onOpenSettings={() => setShowSettings(true)}
         isOpen={sidebarOpen}
         onToggle={handleToggleSidebar}
+        user={user} 
       />
 
       <ChatArea
